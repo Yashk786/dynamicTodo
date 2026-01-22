@@ -34,6 +34,14 @@ const TodoScreen = () => {
     saveTodos(todos);
   }, [todos]);
 
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSubmit = useCallback(() => {
     if (!input.trim()) return;
 
@@ -58,7 +66,8 @@ const TodoScreen = () => {
     }
 
     setInput("");
-  }, [input, editingId]);
+    hideUndo();
+  }, [input, editingId, hideUndo]);
 
   const toggleTodo = useCallback((id) => {
     setTodos((prev) =>
@@ -70,11 +79,47 @@ const TodoScreen = () => {
     );
   }, []);
 
+  const hideUndo = useCallback(() => {
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+    }).start(() => {
+      setDeletedTodo(null);
+    });
+    
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+      undoTimeoutRef.current = null;
+    }
+  }, [slideAnim]);
+
   const deleteTodo = useCallback((id) => {
-    setTodos((prev) =>
-      prev.filter((todo) => todo.id !== id)
-    );
-  }, []);
+    const todoToDelete = todos.find((todo) => todo.id === id);
+    if (todoToDelete) {
+      setDeletedTodo(todoToDelete);
+      setTodos((prev) => prev.filter((todo) => todo.id !== id));
+      
+      Animated.spring(slideAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+      }).start();
+
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+
+      undoTimeoutRef.current = setTimeout(() => {
+        hideUndo();
+      }, 5000);
+    }
+  }, [todos, slideAnim, hideUndo]);
+
+  const undoDelete = useCallback(() => {
+    if (deletedTodo) {
+      setTodos((prev) => [deletedTodo, ...prev]);
+      hideUndo();
+    }
+  }, [deletedTodo, hideUndo]);
 
   const startEdit = useCallback((todo) => {
     setInput(todo.title);
@@ -137,6 +182,32 @@ const TodoScreen = () => {
           }
           showsVerticalScrollIndicator={false}
         />
+
+        {deletedTodo && (
+          <Animated.View
+            style={[
+              styles.undoContainer,
+              {
+                transform: [
+                  {
+                    translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [100, 0],
+                    }),
+                  },
+                ],
+                opacity: slideAnim,
+              },
+            ]}
+          >
+            <Text style={styles.undoText}>
+              Todo deleted
+            </Text>
+            <TouchableOpacity onPress={undoDelete} style={styles.undoButton}>
+              <Text style={styles.undoButtonText}>Undo</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -166,5 +237,39 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontSize: 16,
     marginTop: 40,
+  },
+  undoContainer: {
+    position: "absolute",
+    bottom: 20,
+    left: 16,
+    right: 16,
+    backgroundColor: "#1F2937",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  undoText: {
+    color: "#FFF",
+    fontSize: 14,
+    flex: 1,
+  },
+  undoButton: {
+    marginLeft: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    backgroundColor: "#6366F1",
+    borderRadius: 6,
+  },
+  undoButtonText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
