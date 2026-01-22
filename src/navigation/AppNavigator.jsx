@@ -10,7 +10,7 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Todos"
         component={TodoScreen}
-        options={{ title: "My Todos" }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
