@@ -2,19 +2,22 @@ import React from "react";
 import * as Progress from "react-native-progress";
 import { StyleSheet, View, Text } from "react-native";
 
-const ProgressBar = ({ progress }) => {
+const ProgressBar = ({ progress, completed, total }) => {
+  const percentage = total === 0 ? 0 : Math.round(progress * 100);
+
   return (
     <View style={styles.container}>
       <Progress.Bar
         progress={progress}
         width={null}
-        height={10}
+        height={12}
         color="#6366F1"
         unfilledColor="#E5E7EB"
         borderWidth={0}
+        borderRadius={6}
       />
       <Text style={styles.text}>
-        {(progress * 100).toFixed(0)}% completed
+        {completed} of {total} completed ({percentage}%)
       </Text>
     </View>
   );

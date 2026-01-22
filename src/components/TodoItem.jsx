@@ -4,7 +4,14 @@ import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 const TodoItem = ({ todo, onToggle, onEdit, onDelete }) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => onToggle(todo.id)} style={styles.textContainer}>
+      <TouchableOpacity 
+        onPress={() => onToggle(todo.id)} 
+        style={styles.textContainer}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.checkbox, todo.completed && styles.checkboxCompleted]}>
+          {todo.completed && <Text style={styles.checkmark}>✓</Text>}
+        </View>
         <Text
           style={[
             styles.text,
@@ -41,10 +48,33 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#D1D5DB",
+    marginRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+  },
+  checkboxCompleted: {
+    backgroundColor: "#6366F1",
+    borderColor: "#6366F1",
+  },
+  checkmark: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "bold",
   },
   text: {
     fontSize: 16,
     color: "#111827",
+    flex: 1,
   },
   completed: {
     textDecorationLine: "line-through",

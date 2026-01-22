@@ -1,9 +1,11 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
   FlatList,
   Text,
+  TouchableOpacity,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -16,6 +18,9 @@ const TodoScreen = () => {
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [deletedTodo, setDeletedTodo] = useState(null);
+  const undoTimeoutRef = useRef(null);
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const getTodos = async () => {
@@ -79,8 +84,14 @@ const TodoScreen = () => {
   const progress = useMemo(() => {
     if (todos.length === 0) return 0;
     const completed = todos.filter((t) => t.completed).length;
-    return Math.round((completed / todos.length) * 100);
+    return completed / todos.length;
   }, [todos]);
+
+  const completedCount = useMemo(() => {
+    return todos.filter((t) => t.completed).length;
+  }, [todos]);
+
+  const totalCount = todos.length;
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -99,7 +110,11 @@ const TodoScreen = () => {
       <View style={styles.container}>
         <Text style={styles.title}>Todo App</Text>
 
-        <ProgressBar progress={progress} />
+        <ProgressBar 
+          progress={progress} 
+          completed={completedCount}
+          total={totalCount}
+        />
 
         <AddTodoInput
           value={input}
