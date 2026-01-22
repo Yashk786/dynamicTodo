@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, { useCallback, useMemo, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -8,6 +8,18 @@ import {
   Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setTodos,
+  setInput,
+  setEditingId,
+  addTodo,
+  updateTodo,
+  toggleTodo,
+  deleteTodo,
+  undoDelete,
+  clearDeletedTodo,
+} from "../store/todoSlice";
 
 import AddTodoInput from "../components/AddTodoInput";
 import TodoItem from "../components/TodoItem";
@@ -15,20 +27,18 @@ import ProgressBar from "../components/ProgressBar";
 import { saveTodos, loadTodos } from "../utils/storage";
 
 const TodoScreen = () => {
-  const [todos, setTodos] = useState([]);
-  const [input, setInput] = useState("");
-  const [editingId, setEditingId] = useState(null);
-  const [deletedTodo, setDeletedTodo] = useState(null);
+  const dispatch = useDispatch();
+  const { todos, input, editingId, deletedTodo } = useSelector((state) => state.todos);
   const undoTimeoutRef = useRef(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const getTodos = async () => {
       const saved = await loadTodos();
-      setTodos(saved);
+      dispatch(setTodos(saved));
     };
     getTodos();
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     saveTodos(todos);
@@ -46,85 +56,63 @@ const TodoScreen = () => {
     if (!input.trim()) return;
 
     if (editingId) {
-      setTodos((prev) =>
-        prev.map((todo) =>
-          todo.id === editingId
-            ? { ...todo, title: input }
-            : todo
-        )
-      );
-      setEditingId(null);
+      dispatch(updateTodo({ id: editingId, title: input }));
     } else {
-      setTodos((prev) => [
-        {
-          id: Date.now().toString(),
-          title: input,
-          completed: false,
-        },
-        ...prev,
-      ]);
+      const newTodo = {
+        id: Date.now().toString(),
+        title: input,
+        completed: false,
+      };
+      dispatch(addTodo(newTodo));
     }
 
-    setInput("");
     hideUndo();
-  }, [input, editingId, hideUndo]);
+  }, [input, editingId, dispatch, hideUndo]);
 
-  const toggleTodo = useCallback((id) => {
-    setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id
-          ? { ...todo, completed: !todo.completed }
-          : todo
-      )
-    );
-  }, []);
+  const handleToggle = useCallback((id) => {
+    dispatch(toggleTodo(id));
+  }, [dispatch]);
 
   const hideUndo = useCallback(() => {
     Animated.spring(slideAnim, {
       toValue: 0,
       useNativeDriver: true,
     }).start(() => {
-      setDeletedTodo(null);
+      dispatch(clearDeletedTodo());
     });
     
     if (undoTimeoutRef.current) {
       clearTimeout(undoTimeoutRef.current);
       undoTimeoutRef.current = null;
     }
-  }, [slideAnim]);
+  }, [slideAnim, dispatch]);
 
-  const deleteTodo = useCallback((id) => {
-    const todoToDelete = todos.find((todo) => todo.id === id);
-    if (todoToDelete) {
-      setDeletedTodo(todoToDelete);
-      setTodos((prev) => prev.filter((todo) => todo.id !== id));
-      
-      Animated.spring(slideAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-      }).start();
+  const handleDelete = useCallback((id) => {
+    dispatch(deleteTodo(id));
+    
+    Animated.spring(slideAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
 
-      if (undoTimeoutRef.current) {
-        clearTimeout(undoTimeoutRef.current);
-      }
-
-      undoTimeoutRef.current = setTimeout(() => {
-        hideUndo();
-      }, 5000);
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
     }
-  }, [todos, slideAnim, hideUndo]);
 
-  const undoDelete = useCallback(() => {
-    if (deletedTodo) {
-      setTodos((prev) => [deletedTodo, ...prev]);
+    undoTimeoutRef.current = setTimeout(() => {
       hideUndo();
-    }
-  }, [deletedTodo, hideUndo]);
+    }, 5000);
+  }, [dispatch, slideAnim, hideUndo]);
+
+  const handleUndo = useCallback(() => {
+    dispatch(undoDelete());
+    hideUndo();
+  }, [dispatch, hideUndo]);
 
   const startEdit = useCallback((todo) => {
-    setInput(todo.title);
-    setEditingId(todo.id);
-  }, []);
+    dispatch(setInput(todo.title));
+    dispatch(setEditingId(todo.id));
+  }, [dispatch]);
 
   const progress = useMemo(() => {
     if (todos.length === 0) return 0;
@@ -142,12 +130,12 @@ const TodoScreen = () => {
     ({ item }) => (
       <TodoItem
         todo={item}
-        onToggle={toggleTodo}
+        onToggle={handleToggle}
         onEdit={startEdit}
-        onDelete={deleteTodo}
+        onDelete={handleDelete}
       />
     ),
-    [toggleTodo, startEdit, deleteTodo]
+    [handleToggle, startEdit, handleDelete]
   );
 
   return (
@@ -163,7 +151,7 @@ const TodoScreen = () => {
 
         <AddTodoInput
           value={input}
-          onChange={setInput}
+          onChange={(text) => dispatch(setInput(text))}
           onSubmit={handleSubmit}
           isEditing={!!editingId}
         />
@@ -203,7 +191,7 @@ const TodoScreen = () => {
             <Text style={styles.undoText}>
               Todo deleted
             </Text>
-            <TouchableOpacity onPress={undoDelete} style={styles.undoButton}>
+            <TouchableOpacity onPress={handleUndo} style={styles.undoButton}>
               <Text style={styles.undoButtonText}>Undo</Text>
             </TouchableOpacity>
           </Animated.View>
