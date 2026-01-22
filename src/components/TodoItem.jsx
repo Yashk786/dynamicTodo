@@ -1,10 +1,10 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 
-const TodoItem = ({ todo, onToggle, onDelete }) => {
+const TodoItem = ({ todo, onToggle, onEdit, onDelete }) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => onToggle(todo.id)}>
+      <TouchableOpacity onPress={() => onToggle(todo.id)} style={styles.textContainer}>
         <Text
           style={[
             styles.text,
@@ -15,9 +15,14 @@ const TodoItem = ({ todo, onToggle, onDelete }) => {
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => onDelete(todo.id)}>
-        <Text style={styles.delete}>✕</Text>
-      </TouchableOpacity>
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={() => onEdit(todo)} style={styles.editButton}>
+          <Text style={styles.edit}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => onDelete(todo.id)}>
+          <Text style={styles.delete}>✕</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -34,6 +39,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     justifyContent: "space-between",
   },
+  textContainer: {
+    flex: 1,
+  },
   text: {
     fontSize: 16,
     color: "#111827",
@@ -41,6 +49,19 @@ const styles = StyleSheet.create({
   completed: {
     textDecorationLine: "line-through",
     color: "#9CA3AF",
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  editButton: {
+    paddingHorizontal: 8,
+    marginRight: 4,
+  },
+  edit: {
+    fontSize: 14,
+    color: "#6366F1",
+    fontWeight: "600",
   },
   delete: {
     fontSize: 18,

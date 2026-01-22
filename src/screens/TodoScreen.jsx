@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -10,13 +10,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AddTodoInput from "../components/AddTodoInput";
 import TodoItem from "../components/TodoItem";
 import ProgressBar from "../components/ProgressBar";
+import { saveTodos, loadTodos } from "../utils/storage";
 
 const TodoScreen = () => {
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState("");
   const [editingId, setEditingId] = useState(null);
 
- 
+  useEffect(() => {
+    const getTodos = async () => {
+      const saved = await loadTodos();
+      setTodos(saved);
+    };
+    getTodos();
+  }, []);
+
+  useEffect(() => {
+    saveTodos(todos);
+  }, [todos]);
+
   const handleSubmit = useCallback(() => {
     if (!input.trim()) return;
 
@@ -53,27 +65,23 @@ const TodoScreen = () => {
     );
   }, []);
 
-  
   const deleteTodo = useCallback((id) => {
     setTodos((prev) =>
       prev.filter((todo) => todo.id !== id)
     );
   }, []);
 
-  
   const startEdit = useCallback((todo) => {
     setInput(todo.title);
     setEditingId(todo.id);
   }, []);
 
- 
   const progress = useMemo(() => {
     if (todos.length === 0) return 0;
     const completed = todos.filter((t) => t.completed).length;
     return Math.round((completed / todos.length) * 100);
   }, [todos]);
 
-  
   const renderItem = useCallback(
     ({ item }) => (
       <TodoItem
